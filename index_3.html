@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none';">
+<meta name="theme-color" content="#1a3a5c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Sitios para Comer y Visitar</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6fb;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { text-align: center; color: #1a3a5c; margin-bottom: 4px; }
+  .sub { text-align: center; color: #666; margin-bottom: 20px; font-size: 13px; }
+
+  .toolbar {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    background: #fff; padding: 12px; border-radius: 12px; box-shadow: 0 2px 8px #0001;
+  }
+  .toolbar select, .toolbar input[type=text] {
+    padding: 8px 10px; border: 1px solid #dde; border-radius: 8px; font-size: 14px;
+  }
+  .toolbar input[type=text] { flex: 1; min-width: 140px; }
+  .btn {
+    border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+    font-size: 14px; font-weight: bold; color: #fff;
+  }
+  .btn-blue { background: #3498db; }
+  .btn-green { background: #2ecc71; }
+  .btn-gray { background: #95a5a6; }
+  .btn-red { background: #e74c3c; }
+
+  .form-card {
+    background: #fff; border-radius: 12px; padding: 16px 18px; margin-bottom: 20px;
+    box-shadow: 0 2px 8px #0001;
+  }
+  .form-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+  }
+  .form-grid label { font-size: 12px; color: #888; display: block; margin-bottom: 3px; }
+  .form-grid input, .form-grid select, .form-grid textarea {
+    width: 100%; padding: 7px 9px; border: 1px solid #dde; border-radius: 8px; font-size: 14px;
+  }
+  .full { grid-column: 1 / -1; }
+
+  .stats {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .stat {
+    flex: 1 1 120px; background: #fff; border-radius: 12px; padding: 12px 16px;
+    box-shadow: 0 2px 8px #0001; border-top: 4px solid #3498db;
+  }
+  .stat .label { font-size: 12px; color: #888; }
+  .stat .val { font-size: 20px; font-weight: bold; color: #1a3a5c; }
+
+  .card {
+    background: #fff; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px;
+    box-shadow: 0 2px 8px #0001; display: flex; gap: 12px; align-items: flex-start;
+    border-left: 5px solid #3498db;
+  }
+  .card.visitado { border-left-color: #2ecc71; opacity: 0.75; }
+  .card .icon { font-size: 24px; }
+  .card .content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .card .nombre { font-weight: bold; font-size: 16px; color: #1a3a5c; }
+  .card .meta { font-size: 12px; color: #888; margin: 3px 0; }
+  .card .nota { font-size: 13px; color: #555; margin-top: 4px; }
+  .card .prioridad { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: bold; }
+  .prioridad.alta { background: #fde8e8; color: #e74c3c; }
+  .prioridad.media { background: #fff4e0; color: #e67e22; }
+  .prioridad.baja { background: #eafaf1; color: #27ae60; }
+  .card .actions { display: flex; flex-direction: column; gap: 6px; }
+  .card .actions button {
+    border: none; border-radius: 6px; padding: 5px 8px; cursor: pointer; font-size: 12px; color: #fff;
+  }
+  .form-error { color: #e74c3c; font-size: 13px; font-weight: bold; margin-left: 10px; }
+  .form-card.editando { outline: 3px solid #f39c12; }
+  .card .actions a.maps {
+    border-radius: 6px; padding: 5px 8px; font-size: 12px; color: #fff; background: #1abc9c;
+    text-decoration: none; text-align: center;
+  }
+  .btn-blue-s { background: #3498db; }
+  .seccion { font-size: 18px; color: #1a3a5c; margin: 24px 0 10px; padding-bottom: 6px; border-bottom: 3px solid #3498db; }
+  .seccion.visitar { border-bottom-color: #1abc9c; }
+  .empty { text-align: center; color: #aaa; padding: 30px; font-size: 14px; }
+
+  footer { text-align: center; font-size: 11px; color: #aaa; margin-top: 20px; }
+
+  #print-area { display: none; }
+  @media print {
+    body > .wrap { display: none !important; }
+    body { background: #fff; padding: 0; }
+    #print-area { display: block; color: #000; font-size: 12px; }
+    #print-area h1 { font-size: 20px; color: #000; text-align: left; }
+    #print-area h2 { font-size: 15px; margin: 16px 0 6px; }
+    #print-area table { width: 100%; border-collapse: collapse; }
+    #print-area th, #print-area td { border: 1px solid #999; padding: 4px 6px; text-align: left; vertical-align: top; }
+    #print-area th { background: #e8e8e8; }
+    #print-area tr { page-break-inside: avoid; }
+    #print-area td.alta { background: #ffd9d9; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍽️ Sitios para Comer y Visitar</h1>
+  <p class="sub">Tu lista guardada en este dispositivo — exporta de vez en cuando para no perderla</p>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="form-card" id="form-card">
+    <div class="form-grid">
+      <div>
+        <label>Nombre del sitio</label>
+        <input type="text" id="f-nombre" maxlength="100" placeholder="Ej: Restaurante La Terraza">
+      </div>
+      <div>
+        <label>Tipo (obligatorio)</label>
+        <select id="f-tipo">
+          <option value="" selected>— Elige: comer o visitar —</option>
+          <option value="comer">🍽️ Para comer</option>
+          <option value="visitar">📍 Para visitar</option>
+        </select>
+      </div>
+      <div>
+        <label>Ciudad / Zona</label>
+        <input type="text" id="f-ciudad" maxlength="100" placeholder="Ej: Girona">
+      </div>
+      <div>
+        <label>Prioridad</label>
+        <select id="f-prioridad">
+          <option value="media">Media</option>
+          <option value="alta">Alta</option>
+          <option value="baja">Baja</option>
+        </select>
+      </div>
+      <div class="full">
+        <label>Nota (quién lo recomendó, qué pedir, horario...)</label>
+        <textarea id="f-nota" rows="2" maxlength="500" placeholder="Opcional"></textarea>
+      </div>
+    </div>
+    <button class="btn btn-blue" id="btn-agregar" type="button">+ Añadir a la lista</button>
+    <button class="btn btn-gray" id="btn-cancelar" type="button" style="display:none">Cancelar edición</button>
+    <span class="form-error" id="f-error" role="alert"></span>
+  </div>
+
+  <div class="toolbar">
+    <select id="filtro-tipo">
+      <option value="todos">Todos los tipos</option>
+      <option value="comer">Solo comer</option>
+      <option value="visitar">Solo visitar</option>
+    </select>
+    <select id="filtro-estado">
+      <option value="todos">Todos</option>
+      <option value="pendiente">Pendientes</option>
+      <option value="visitado">Ya visitados</option>
+    </select>
+    <input type="text" id="filtro-texto" placeholder="Buscar por nombre o ciudad...">
+    <button class="btn btn-green" id="btn-exportar" type="button">⬇️ Exportar</button>
+    <button class="btn btn-red" id="btn-pdf" type="button">📄 Exportar PDF</button>
+    <button class="btn btn-gray" id="btn-importar" type="button">⬆️ Importar</button>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+  </div>
+
+  <div id="lista"></div>
+
+  <footer>
+    Datos guardados en el almacenamiento de este navegador y de este dispositivo. Si borras los datos del navegador, se pierden.
+    Usa "Exportar" cada cierto tiempo para tener una copia de seguridad en un archivo .json.
+  </footer>
+</div>
+<div id="print-area"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = "sitios_comer_visitar_v1";
+  var TIPOS = ["comer", "visitar"];
+  var PRIORIDADES = ["alta", "media", "baja"];
+  var ESTADOS = ["pendiente", "visitado"];
+  var ORDEN = { alta: 0, media: 1, baja: 2 };
+  var MAX_ITEMS = 2000, MAX_NOMBRE = 100, MAX_CIUDAD = 100, MAX_NOTA = 500, MAX_BYTES = 2000000;
+  var RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+
+  function hoyISO() { return new Date().toISOString().slice(0, 10); }
+
+  function texto(v, max) {
+    return typeof v === 'string' ? v.trim().slice(0, max) : '';
+  }
+
+  function generarId(usados) {
+    var id = Date.now();
+    while (usados.has(id)) id++;
+    return id;
+  }
+
+  // Valida y normaliza una lista venga de donde venga (localStorage o archivo importado).
+  // Nunca confía en los datos: todo campo se fuerza a un valor permitido.
+  function limpiarLista(datos) {
+    if (!Array.isArray(datos)) return null;
+    var items = [], ids = new Set(), descartados = 0;
+    for (var i = 0; i < datos.length; i++) {
+      var d = datos[i];
+      if (items.length >= MAX_ITEMS || !d || typeof d !== 'object' || Array.isArray(d)) { descartados++; continue; }
+      var nombre = texto(d.nombre, MAX_NOMBRE);
+      if (!nombre) { descartados++; continue; }
+      var id = d.id;
+      if (!Number.isSafeInteger(id) || id <= 0 || ids.has(id)) id = generarId(ids);
+      ids.add(id);
+      items.push({
+        id: id,
+        nombre: nombre,
+        tipo: TIPOS.indexOf(d.tipo) >= 0 ? d.tipo : "comer",
+        ciudad: texto(d.ciudad, MAX_CIUDAD),
+        prioridad: PRIORIDADES.indexOf(d.prioridad) >= 0 ? d.prioridad : "media",
+        nota: texto(d.nota, MAX_NOTA),
+        estado: ESTADOS.indexOf(d.estado) >= 0 ? d.estado : "pendiente",
+        fecha: (typeof d.fecha === 'string' && RE_FECHA.test(d.fecha)) ? d.fecha : hoyISO()
+      });
+    }
+    return { items: items, descartados: descartados };
+  }
+
+  function cargar() {
+    var raw = null;
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return []; }
+    if (!raw) return [];
+    try {
+      var r = limpiarLista(JSON.parse(raw));
+      if (!r) throw new Error("formato");
+      if (r.descartados > 0) {
+        guardarCopiaRota(raw);
+        alert("Se descartaron " + r.descartados + " registros dañados de tu lista. Se guardó una copia del original por si hace falta recuperarlo.");
+      }
+      return r.items;
+    } catch (e) {
+      guardarCopiaRota(raw);
+      alert("Los datos guardados estaban dañados y no se pudieron leer. Se conservó una copia del original; no hagas cambios y pide ayuda para recuperarla.");
+      return [];
+    }
+  }
+
+  function guardarCopiaRota(raw) {
+    try { localStorage.setItem(STORAGE_KEY + "_corrupto", raw); } catch (e) { /* sin espacio: no se puede hacer más */ }
+  }
+
+  function guardar(lista) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+      return true;
+    } catch (e) {
+      alert('No se pudo guardar en este navegador (modo privado, sin espacio o bloqueado). El cambio NO se ha guardado. Usa "Exportar" para no perder tu lista.');
+      return false;
+    }
+  }
+
+  var sitios = cargar();
+  var editandoId = null; // id del sitio que se está editando (null = modo añadir)
+
+  // Solo cambia la lista en pantalla si realmente se pudo guardar.
+  function confirmarCambio(nueva) {
+    if (!guardar(nueva)) return false;
+    sitios = nueva;
+    // Si el sitio que se editaba ya no existe (borrado o lista reemplazada), salir de la edición.
+    if (editandoId !== null && !sitios.some(function (s) { return s.id === editandoId; })) salirEdicion();
+    render();
+    return true;
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  function el(tag, cls, txt) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt !== undefined) e.textContent = txt;
+    return e;
+  }
+
+  function mostrarError(msg) { $("f-error").textContent = msg || ""; }
+
+  function limpiarFormulario() {
+    $("f-nombre").value = "";
+    $("f-tipo").value = "";          // obligatorio: hay que elegirlo cada vez
+    $("f-ciudad").value = "";
+    $("f-prioridad").value = "media";
+    $("f-nota").value = "";
+  }
+
+  function salirEdicion() {
+    editandoId = null;
+    limpiarFormulario();
+    mostrarError("");
+    $("btn-agregar").textContent = "+ Añadir a la lista";
+    $("btn-cancelar").style.display = "none";
+    $("form-card").classList.remove("editando");
+  }
+
+  function empezarEdicion(s) {
+    editandoId = s.id;
+    $("f-nombre").value = s.nombre;
+    $("f-tipo").value = s.tipo;
+    $("f-ciudad").value = s.ciudad;
+    $("f-prioridad").value = s.prioridad;
+    $("f-nota").value = s.nota;
+    mostrarError("");
+    $("btn-agregar").textContent = "💾 Guardar cambios";
+    $("btn-cancelar").style.display = "";
+    $("form-card").classList.add("editando");
+    $("form-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    $("f-nombre").focus();
+  }
+
+  // Sirve para añadir un sitio nuevo y para guardar los cambios de uno que se edita.
+  function guardarFormulario() {
+    var nombre = texto($("f-nombre").value, MAX_NOMBRE);
+    var tipo = $("f-tipo").value, prioridad = $("f-prioridad").value;
+    if (!nombre) { mostrarError("Ponle un nombre al sitio."); $("f-nombre").focus(); return; }
+    if (TIPOS.indexOf(tipo) < 0) { mostrarError("Elige si es para comer o para visitar."); $("f-tipo").focus(); return; }
+    mostrarError("");
+    var datos = {
+      nombre: nombre,
+      tipo: tipo,
+      ciudad: texto($("f-ciudad").value, MAX_CIUDAD),
+      prioridad: PRIORIDADES.indexOf(prioridad) >= 0 ? prioridad : "media",
+      nota: texto($("f-nota").value, MAX_NOTA)
+    };
+
+    if (editandoId !== null) {
+      var id = editandoId;
+      if (!sitios.some(function (s) { return s.id === id; })) { salirEdicion(); return; }
+      var editada = sitios.map(function (s) { return s.id === id ? Object.assign({}, s, datos) : s; });
+      if (confirmarCambio(editada)) salirEdicion();
+      return;
+    }
+
+    if (sitios.length >= MAX_ITEMS) { mostrarError("Has llegado al máximo de " + MAX_ITEMS + " sitios."); return; }
+    var usados = new Set(sitios.map(function (s) { return s.id; }));
+    var nuevo = Object.assign({ id: generarId(usados), estado: "pendiente", fecha: hoyISO() }, datos);
+    if (confirmarCambio([nuevo].concat(sitios))) limpiarFormulario();
+  }
+
+  function toggleEstado(id) {
+    confirmarCambio(sitios.map(function (s) {
+      if (s.id !== id) return s;
+      var copia = Object.assign({}, s);
+      copia.estado = s.estado === "visitado" ? "pendiente" : "visitado";
+      return copia;
+    }));
+  }
+
+  function borrar(id) {
+    if (!confirm("¿Borrar este sitio de la lista?")) return;
+    confirmarCambio(sitios.filter(function (s) { return s.id !== id; }));
+  }
+
+  function exportar() {
+    var blob = new Blob([JSON.stringify(sitios, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "sitios_backup_" + hoyISO() + ".json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function clave(s) {
+    return s.tipo + "|" + s.nombre.toLowerCase() + "|" + s.ciudad.toLowerCase();
+  }
+
+  function importar(event) {
+    var file = event.target.files[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > MAX_BYTES) { alert("El archivo es demasiado grande."); return; }
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      var r;
+      try {
+        r = limpiarLista(JSON.parse(e.target.result));
+      } catch (err) { r = null; }
+      if (!r) { alert("El archivo no es válido."); return; }
+      if (r.items.length === 0) { alert("El archivo no contiene ningún sitio válido. No se ha cambiado nada."); return; }
+
+      var resumen = "El archivo tiene " + r.items.length + " sitios válidos" +
+        (r.descartados ? " (" + r.descartados + " descartados por datos inválidos)" : "") + ".\n\n";
+
+      if (confirm(resumen + "Aceptar = COMBINAR con tu lista actual (no borra nada).\nCancelar = ver otras opciones.")) {
+        var usados = new Set(sitios.map(function (s) { return s.id; }));
+        var claves = new Set(sitios.map(clave));
+        var nuevos = [], repetidos = 0;
+        r.items.forEach(function (s) {
+          if (claves.has(clave(s))) { repetidos++; return; }
+          claves.add(clave(s));
+          if (usados.has(s.id)) s.id = generarId(usados);
+          usados.add(s.id);
+          nuevos.push(s);
+        });
+        var combinada = nuevos.concat(sitios);
+        if (combinada.length > MAX_ITEMS) { alert("Superarías el máximo de " + MAX_ITEMS + " sitios. No se ha importado nada."); return; }
+        if (confirmarCambio(combinada)) {
+          alert("Añadidos " + nuevos.length + " sitios nuevos. Omitidos por repetidos: " + repetidos + ".");
+        }
+      } else if (confirm("¿REEMPLAZAR toda tu lista actual (" + sitios.length + " sitios) por la del archivo (" + r.items.length + ")?\nLo que tengas ahora se perderá.\n\nAceptar = reemplazar.\nCancelar = no hacer nada.")) {
+        if (confirmarCambio(r.items)) alert("Lista reemplazada: " + r.items.length + " sitios.");
+      }
+    };
+    reader.onerror = function () { alert("No se pudo leer el archivo."); };
+    reader.readAsText(file);
+  }
+
+  function bloqueImpresion(tipo, titulo) {
+    var items = sitios.filter(function (s) { return s.tipo === tipo; })
+      .sort(function (a, b) { return (ORDEN[a.prioridad] - ORDEN[b.prioridad]) || a.nombre.localeCompare(b.nombre, "es"); });
+    var frag = document.createDocumentFragment();
+    frag.appendChild(el("h2", "", titulo + " (" + items.length + ")"));
+    var tabla = el("table");
+    var cab = el("tr");
+    ["Prioridad", "Sitio", "Dirección / Zona", "Nota"].forEach(function (t) { cab.appendChild(el("th", "", t)); });
+    tabla.appendChild(cab);
+    items.forEach(function (s) {
+      var tr = el("tr");
+      tr.appendChild(el("td", s.prioridad, s.prioridad));
+      var tdNombre = el("td");
+      tdNombre.appendChild(el("b", "", s.nombre));
+      if (s.estado === "visitado") tdNombre.appendChild(document.createTextNode(" (visitado)"));
+      tr.appendChild(tdNombre);
+      tr.appendChild(el("td", "", s.ciudad));
+      tr.appendChild(el("td", "", s.nota));
+      tabla.appendChild(tr);
+    });
+    frag.appendChild(tabla);
+    return frag;
+  }
+
+  function exportarPDF() {
+    var hoy = hoyISO();
+    var area = $("print-area");
+    area.textContent = "";
+    area.appendChild(el("h1", "", "Sitios para comer y visitar"));
+    area.appendChild(el("p", "", "Copia del " + hoy + " · " + sitios.length + " sitios"));
+    area.appendChild(bloqueImpresion("comer", "Para comer"));
+    area.appendChild(bloqueImpresion("visitar", "Para visitar"));
+    var tituloOriginal = document.title;
+    document.title = "sitios_" + hoy;
+    window.print();
+    document.title = tituloOriginal;
+  }
+
+  function tarjeta(s) {
+    var card = el("div", "card" + (s.estado === "visitado" ? " visitado" : ""));
+    card.appendChild(el("div", "icon", s.tipo === "comer" ? "🍽️" : "📍"));
+
+    var content = el("div", "content");
+    content.appendChild(el("div", "nombre", s.nombre + (s.estado === "visitado" ? " ✅" : "")));
+    var meta = el("div", "meta");
+    if (s.ciudad) meta.appendChild(document.createTextNode(s.ciudad + " · "));
+    meta.appendChild(el("span", "prioridad " + s.prioridad, s.prioridad));
+    content.appendChild(meta);
+    if (s.nota) content.appendChild(el("div", "nota", "💬 " + s.nota));
+    card.appendChild(content);
+
+    var acciones = el("div", "actions");
+    var bEditar = el("button", "btn-blue-s", "✏️ Editar");
+    bEditar.type = "button";
+    bEditar.addEventListener("click", function () { empezarEdicion(s); });
+    acciones.appendChild(bEditar);
+    // Enlace de búsqueda en Google Maps: esquema fijo, el texto va codificado. Solo se abre al pulsarlo.
+    var maps = el("a", "maps", "📍 Maps");
+    maps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(s.nombre + (s.ciudad ? " " + s.ciudad : ""));
+    maps.target = "_blank";
+    maps.rel = "noopener noreferrer";
+    acciones.appendChild(maps);
+    var bEstado = el("button", "btn-gray", s.estado === "visitado" ? "Marcar pendiente" : "Marcar visitado");
+    bEstado.type = "button";
+    bEstado.addEventListener("click", function () { toggleEstado(s.id); });
+    var bBorrar = el("button", "btn-red", "Borrar");
+    bBorrar.type = "button";
+    bBorrar.addEventListener("click", function () { borrar(s.id); });
+    acciones.appendChild(bEstado);
+    acciones.appendChild(bBorrar);
+    card.appendChild(acciones);
+    return card;
+  }
+
+  function render() {
+    var tipo = $("filtro-tipo").value;
+    var estado = $("filtro-estado").value;
+    var q = $("filtro-texto").value.toLowerCase();
+
+    var filtrados = sitios.filter(function (s) {
+      if (tipo !== "todos" && s.tipo !== tipo) return false;
+      if (estado !== "todos" && s.estado !== estado) return false;
+      if (q && !(s.nombre.toLowerCase().indexOf(q) >= 0 || s.ciudad.toLowerCase().indexOf(q) >= 0)) return false;
+      return true;
+    });
+
+    filtrados.sort(function (a, b) {
+      return (ORDEN[a.prioridad] - ORDEN[b.prioridad]) ||
+             ((a.estado === "visitado") - (b.estado === "visitado")) ||
+             a.nombre.localeCompare(b.nombre, "es");
+    });
+
+    var cont = $("lista");
+    cont.textContent = "";
+    if (filtrados.length === 0) {
+      cont.appendChild(el("div", "empty", "No hay sitios que coincidan. Añade uno arriba 👆"));
+    } else {
+      [["comer", "🍽️ Para comer"], ["visitar", "📍 Para visitar"]].forEach(function (sec) {
+        var grupo = filtrados.filter(function (s) { return s.tipo === sec[0]; });
+        if (grupo.length === 0) return;
+        cont.appendChild(el("h2", "seccion " + sec[0], sec[1] + " (" + grupo.length + ")"));
+        grupo.forEach(function (s) { cont.appendChild(tarjeta(s)); });
+      });
+    }
+    renderStats();
+  }
+
+  function renderStats() {
+    var total = sitios.length;
+    var visitados = sitios.filter(function (s) { return s.estado === "visitado"; }).length;
+    var comer = sitios.filter(function (s) { return s.tipo === "comer"; }).length;
+    var datos = [
+      ["Total", total, "#3498db"],
+      ["Pendientes", total - visitados, "#e67e22"],
+      ["Visitados", visitados, "#2ecc71"],
+      ["🍽️ Comer", comer, "#9b59b6"],
+      ["📍 Visitar", total - comer, "#1abc9c"]
+    ];
+    var cont = $("stats");
+    cont.textContent = "";
+    datos.forEach(function (d) {
+      var box = el("div", "stat");
+      box.style.borderTopColor = d[2];
+      box.appendChild(el("div", "label", d[0]));
+      box.appendChild(el("div", "val", String(d[1])));
+      cont.appendChild(box);
+    });
+  }
+
+  $("btn-agregar").addEventListener("click", guardarFormulario);
+  $("btn-cancelar").addEventListener("click", salirEdicion);
+  $("btn-exportar").addEventListener("click", exportar);
+  $("btn-pdf").addEventListener("click", exportarPDF);
+  $("btn-importar").addEventListener("click", function () { $("importFile").click(); });
+  $("importFile").addEventListener("change", importar);
+  $("filtro-tipo").addEventListener("change", render);
+  $("filtro-estado").addEventListener("change", render);
+  $("filtro-texto").addEventListener("input", render);
+
+  render();
+
+  // Modo sin conexión: solo se activa en https (no en file://). Si falla, la app sigue funcionando igual.
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    window.addEventListener("load", function () {
+      try { navigator.serviceWorker.register("sw.js").catch(function () {}); } catch (e) {}
+    });
+  }
+})();
+</script>
+</body>
+</html>
